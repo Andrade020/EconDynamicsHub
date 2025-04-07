@@ -1,0 +1,4 @@
+# This file is used internally by FFMPEG.
+file 'file:C:/Users/Leo/Desktop/Portfolio/EconDynamicsHub/media/videos/dsge_fechada/480p15/partial_movie_files/CaminhoDoCapital/1185818338_3303904470_223132457.mp4'
+file 'file:C:/Users/Leo/Desktop/Portfolio/EconDynamicsHub/media/videos/dsge_fechada/480p15/partial_movie_files/CaminhoDoCapital/624642324_3483719363_3541836724.mp4'
+file 'file:C:/Users/Leo/Desktop/Portfolio/EconDynamicsHub/media/videos/dsge_fechada/480p15/partial_movie_files/CaminhoDoCapital/624642324_2844360058_1336681963.mp4'
