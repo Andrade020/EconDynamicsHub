@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulação Termodinâmica - Ventilador</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 10px;
+            color: #00d4ff;
+        }
+        .info {
+            margin-bottom: 20px;
+            text-align: center;
+            font-size: 14px;
+            color: #aaa;
+            max-width: 800px;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .simulation {
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #00d4ff;
+            background: #0f0f1e;
+            border-radius: 8px;
+        }
+        .title {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .sensor {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.85);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px solid #00d4ff;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .particle-count {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 11px;
+            color: #aaa;
+            pointer-events: none;
+        }
+        .temp-hot {
+            color: #ff4444;
+        }
+        .temp-cool {
+            color: #44ff44;
+        }
+        .temp-warm {
+            color: #ffaa44;
+        }
+        .legend {
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            font-size: 11px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 1px solid #fff;
+        }
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-direction: column;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #00d4ff;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #00a8cc;
+            transform: scale(1.05);
+        }
+        .stats {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 800px;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        .comparison {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 212, 255, 0.1);
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            max-width: 800px;
+            text-align: center;
+        }
+        .comparison h2 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        .winner {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Simulação Termodinâmica - Direção do Ventilador</h1>
+    <div class="info">
+        Sistema aberto: ar fresco externo (20°C) vs. ambiente interno aquecido (30°C inicial)<br>
+        Partículas são geradas continuamente no exterior e perdidas nas bordas
+    </div>
+    
+    <div class="container">
+        <div class="simulation">
+            <div class="title">Ventilador → DENTRO (trazendo ar fresco)</div>
+            <canvas id="canvas1" width="400" height="400"></canvas>
+            <div class="sensor">
+                <span id="temp1" class="temp-hot">30.0°C</span>
+            </div>
+            <div class="particle-count" id="count1">Partículas: 0</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff0000;"></div>
+                    <span>Muito quente (&gt;35°C)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff8800;"></div>
+                    <span>Quente (28-35°C)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #88ff00;"></div>
+                    <span>Morno (22-28°C)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00aaff;"></div>
+                    <span>Fresco (&lt;22°C)</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="simulation">
+            <div class="title">Ventilador ← FORA (expelindo ar quente)</div>
+            <canvas id="canvas2" width="400" height="400"></canvas>
+            <div class="sensor">
+                <span id="temp2" class="temp-hot">30.0°C</span>
+            </div>
+            <div class="particle-count" id="count2">Partículas: 0</div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff0000;"></div>
+                    <span>Muito quente (&gt;35°C)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ff8800;"></div>
+                    <span>Quente (28-35°C)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #88ff00;"></div>
+                    <span>Morno (22-28°C)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #00aaff;"></div>
+                    <span>Fresco (&lt;22°C)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="comparison">
+        <h2>Resultado da Comparação</h2>
+        <div class="winner" id="winner">Aguardando dados...</div>
+        <div id="comparison-text">Deixe a simulação rodar por alguns segundos...</div>
+    </div>
+    
+    <div class="controls">
+        <button onclick="resetSimulation()">Reiniciar Simulação</button>
+    </div>
+    
+    <div class="stats">
+        <strong>Como funciona esta simulação (sistema aberto):</strong><br>
+        • <strong>Temperatura externa:</strong> 20°C (ar fresco constante)<br>
+        • <strong>Temperatura interna inicial:</strong> 30°C (ambiente aquecido)<br>
+        • <strong>Geração contínua:</strong> Partículas frescas surgem do lado externo<br>
+        • <strong>Perda contínua:</strong> Partículas que saem dos limites são removidas<br>
+        • <strong>Troca de calor:</strong> Partículas trocam calor por condução térmica<br>
+        • <strong>Realismo:</strong> Simula portas/janelas abertas com fluxo contínuo de ar
+    </div>
+
+    <script>
+        const canvas1 = document.getElementById('canvas1');
+        const canvas2 = document.getElementById('canvas2');
+        const ctx1 = canvas1.getContext('2d');
+        const ctx2 = canvas2.getContext('2d');
+        
+        const ROOM_TEMP_INITIAL = 30; // Ambiente interno aquecido
+        const OUTSIDE_TEMP = 20; // Ar fresco externo
+        const FAN_POSITION = 80;
+        const TARGET_PARTICLE_COUNT = 280;
+        const FAN_FORCE = 2.2;
+        const THERMAL_CONDUCTIVITY = 0.02;
+        const SPAWN_RATE = 5; // Partículas geradas por frame
+        
+        class Particle {
+            constructor(x, y, temp) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 1;
+                this.vy = (Math.random() - 0.5) * 1;
+                this.temp = temp;
+                this.radius = 3;
+                this.age = 0;
+            }
+            
+            getColor() {
+                if (this.temp >= 35) {
+                    return '#ff0000';
+                } else if (this.temp >= 31) {
+                    const t = (this.temp - 31) / 4;
+                    return `rgb(255, ${Math.floor(136 * (1-t))}, 0)`;
+                } else if (this.temp >= 28) {
+                    const t = (this.temp - 28) / 3;
+                    return `rgb(255, ${Math.floor(136 + 119 * (1-t))}, 0)`;
+                } else if (this.temp >= 25) {
+                    const t = (this.temp - 25) / 3;
+                    return `rgb(${Math.floor(136 + 119 * t)}, 255, 0)`;
+                } else if (this.temp >= 22) {
+                    const t = (this.temp - 22) / 3;
+                    return `rgb(0, ${Math.floor(170 + 85 * t)}, ${Math.floor(255)})`;
+                } else {
+                    return '#00aaff';
+                }
+            }
+            
+            update(fanDirection, width, height, particles) {
+                this.age++;
+                
+                // Força do ventilador
+                const distToFan = Math.abs(this.x - FAN_POSITION);
+                if (distToFan < 70) {
+                    const fanStrength = FAN_FORCE * (1 - distToFan / 70);
+                    if (fanDirection === 'in') {
+                        if (this.x < FAN_POSITION) {
+                            this.vx += fanStrength * 2; // Suga ar fresco de fora
+                        } else if (this.x < FAN_POSITION + 100) {
+                            this.vx += fanStrength; // Empurra para dentro
+                        }
+                    } else {
+                        if (this.x > FAN_POSITION) {
+                            this.vx -= fanStrength * 2; // Suga ar quente de dentro
+                        } else if (this.x > FAN_POSITION - 100) {
+                            this.vx -= fanStrength; // Expele para fora
+                        }
+                    }
+                }
+                
+                // Movimento browniano
+                const thermalAgitation = Math.sqrt(this.temp / 25) * 0.25;
+                this.vx += (Math.random() - 0.5) * thermalAgitation;
+                this.vy += (Math.random() - 0.5) * thermalAgitation;
+                
+                // Atrito
+                this.vx *= 0.98;
+                this.vy *= 0.98;
+                
+                // Limitar velocidade
+                const maxSpeed = 5;
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speed > maxSpeed) {
+                    this.vx = (this.vx / speed) * maxSpeed;
+                    this.vy = (this.vy / speed) * maxSpeed;
+                }
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Colisão com paredes (top e bottom)
+                if (this.y < 5) {
+                    this.y = 5;
+                    this.vy *= -0.7;
+                } else if (this.y > height - 5) {
+                    this.y = height - 5;
+                    this.vy *= -0.7;
+                }
+                
+                // Paredes laterais - mais permissivas, partículas podem sair
+                if (this.x < 0 || this.x > width) {
+                    return false; // Marca para remoção
+                }
+                
+                // Condução térmica entre partículas próximas
+                particles.forEach(other => {
+                    if (other === this) return;
+                    const dx = other.x - this.x;
+                    const dy = other.y - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < 20 && dist > 0) {
+                        const tempDiff = other.temp - this.temp;
+                        const heatTransfer = tempDiff * THERMAL_CONDUCTIVITY * (1 - dist / 20);
+                        this.temp += heatTransfer;
+                        
+                        // Pequena repulsão para evitar sobreposição
+                        const repulsion = 0.05 * (1 - dist / 20);
+                        this.vx -= (dx / dist) * repulsion;
+                        this.vy -= (dy / dist) * repulsion;
+                    }
+                });
+                
+                return true; // Partícula ainda válida
+            }
+            
+            draw(ctx) {
+                ctx.fillStyle = this.getColor();
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Brilho sutil
+                if (this.temp < 22 || this.temp > 33) {
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.radius * 0.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+        
+        class Simulation {
+            constructor(canvas, ctx, fanDirection, tempDisplay, countDisplay) {
+                this.canvas = canvas;
+                this.ctx = ctx;
+                this.fanDirection = fanDirection;
+                this.tempDisplay = tempDisplay;
+                this.countDisplay = countDisplay;
+                this.particles = [];
+                this.avgTemp = ROOM_TEMP_INITIAL;
+                this.tempHistory = [];
+                this.time = 0;
+                
+                this.init();
+            }
+            
+            init() {
+                this.particles = [];
+                this.tempHistory = [];
+                
+                // Iniciar com partículas quentes dentro
+                for (let i = 0; i < TARGET_PARTICLE_COUNT * 0.6; i++) {
+                    const x = FAN_POSITION + 20 + Math.random() * (this.canvas.width - FAN_POSITION - 30);
+                    const y = Math.random() * this.canvas.height;
+                    const temp = ROOM_TEMP_INITIAL + (Math.random() - 0.5) * 4;
+                    this.particles.push(new Particle(x, y, temp));
+                }
+                
+                // Algumas partículas frescas fora
+                for (let i = 0; i < TARGET_PARTICLE_COUNT * 0.3; i++) {
+                    const x = Math.random() * FAN_POSITION;
+                    const y = Math.random() * this.canvas.height;
+                    const temp = OUTSIDE_TEMP + (Math.random() - 0.5) * 2;
+                    this.particles.push(new Particle(x, y, temp));
+                }
+            }
+            
+            // ==========================================================
+            // AQUI ESTÁ A CORREÇÃO
+            // ==========================================================
+            spawnParticles() {
+                // Gerar partículas frescas
+                for (let i = 0; i < SPAWN_RATE; i++) {
+                    if (this.particles.length >= TARGET_PARTICLE_COUNT * 1.2) {
+                        break; // Para de gerar se o sistema estiver cheio
+                    }
+                    
+                    const y = Math.random() * this.canvas.height;
+                    const temp = OUTSIDE_TEMP + (Math.random() - 0.5) * 2;
+                    let x;
+
+                    if (this.fanDirection === 'in') {
+                        // Cenário 1: Fan "puxa" ar. Fonte de ar fresco é 'fora', perto do fan.
+                        x = 5;
+                    } else {
+                        // Cenário 2: Fan "expele" ar. Ar fresco entra "passivamente" por outra fresta,
+                        // do outro lado do cômodo (simulando sucção).
+                        x = this.canvas.width - 5;
+                    }
+                    
+                    this.particles.push(new Particle(x, y, temp));
+                }
+                
+                // O bloco "if (this.fanDirection === 'out'..." FOI REMOVIDO.
+                // Ele era uma fonte de calor injusta que só existia na Simulação 2,
+                // invalidando a comparação.
+            }
+            // ==========================================================
+            // FIM DA CORREÇÃO
+            // ==========================================================
+            
+            update() {
+                // Atualizar partículas e remover as que saíram
+                this.particles = this.particles.filter(p => 
+                    p.update(this.fanDirection, this.canvas.width, this.canvas.height, this.particles)
+                );
+                
+                // Gerar novas partículas
+                this.spawnParticles();
+                
+                // Calcular temperatura média da área interna (sensor)
+                let tempSum = 0;
+                let count = 0;
+                const sensorX = this.canvas.width - 100;
+                const sensorY = 50;
+                const sensorRadius = 60;
+                
+                this.particles.forEach(p => {
+                    const dx = p.x - sensorX;
+                    const dy = p.y - sensorY;
+                    if (Math.sqrt(dx*dx + dy*dy) < sensorRadius) {
+                        tempSum += p.temp;
+                        count++;
+                    }
+                });
+                
+                if (count > 0) {
+                    this.avgTemp = tempSum / count;
+                } else {
+                    // Usar média geral se sensor não detectar nada
+                    tempSum = 0;
+                    count = 0;
+                    this.particles.forEach(p => {
+                        if (p.x > FAN_POSITION + 50) {
+                            tempSum += p.temp;
+                            count++;
+                        }
+                    });
+                    this.avgTemp = count > 0 ? tempSum / count : ROOM_TEMP_INITIAL;
+                }
+                
+                // Histórico de temperatura
+                this.tempHistory.push(this.avgTemp);
+                if (this.tempHistory.length > 300) {
+                    this.tempHistory.shift();
+                }
+                
+                // Atualizar displays
+                this.tempDisplay.textContent = this.avgTemp.toFixed(1) + '°C';
+                if (this.avgTemp > 28) {
+                    this.tempDisplay.className = 'temp-hot';
+                } else if (this.avgTemp < 23) {
+                    this.tempDisplay.className = 'temp-cool';
+                } else {
+                    this.tempDisplay.className = 'temp-warm';
+                }
+                
+                this.countDisplay.textContent = `Partículas: ${this.particles.length}`;
+                
+                this.time++;
+            }
+            
+            draw() {
+                this.ctx.fillStyle = '#0f0f1e';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Área do sensor (sutil)
+                this.ctx.strokeStyle = 'rgba(0, 212, 255, 0.2)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(this.canvas.width - 100, 50, 60, 0, Math.PI * 2);
+                this.ctx.stroke();
+                
+                // Desenhar ventilador
+                this.ctx.fillStyle = '#444';
+                this.ctx.fillRect(FAN_POSITION - 4, 0, 8, this.canvas.height);
+                
+                // Hélices animadas
+                const bladeAngle = (this.time * 0.2) % (Math.PI * 2);
+                this.ctx.strokeStyle = '#666';
+                this.ctx.lineWidth = 3;
+                for (let i = 0; i < 4; i++) {
+                    const angle = bladeAngle + (i * Math.PI / 2);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(FAN_POSITION, this.canvas.height / 2);
+                    this.ctx.lineTo(
+                        FAN_POSITION + Math.cos(angle) * 25,
+                        this.canvas.height / 2 + Math.sin(angle) * 25
+                    );
+                    this.ctx.stroke();
+                }
+                
+                // Seta de direção
+                this.ctx.fillStyle = '#00d4ff';
+                this.ctx.font = 'bold 40px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(this.fanDirection === 'in' ? '→' : '←', FAN_POSITION, 45);
+                
+                // Desenhar partículas
+                this.particles.forEach(p => p.draw(this.ctx));
+                
+                // Labels
+                this.ctx.fillStyle = '#aaa';
+                this.ctx.font = 'bold 13px Arial';
+                this.ctx.fillText('AR FRESCO', 40, this.canvas.height - 15);
+                this.ctx.fillText('20°C', 40, this.canvas.height - 2);
+            }
+            
+            getAverageTemp() {
+                if (this.tempHistory.length < 50) return null;
+                const recent = this.tempHistory.slice(-100);
+                return recent.reduce((a, b) => a + b, 0) / recent.length;
+            }
+            
+            reset() {
+                this.init();
+                this.time = 0;
+            }
+        }
+        
+        const sim1 = new Simulation(canvas1, ctx1, 'in', document.getElementById('temp1'), document.getElementById('count1'));
+        const sim2 = new Simulation(canvas2, ctx2, 'out', document.getElementById('temp2'), document.getElementById('count2'));
+        
+        function updateComparison() {
+            const avg1 = sim1.getAverageTemp();
+            const avg2 = sim2.getAverageTemp();
+            
+            if (avg1 !== null && avg2 !== null) {
+                const diff = Math.abs(avg1 - avg2);
+                const winner = document.getElementById('winner');
+                const text = document.getElementById('comparison-text');
+                
+                if (diff < 0.5) {
+                    winner.innerHTML = '🤝 EMPATE TÉCNICO';
+                    winner.style.color = '#ffaa44';
+                    text.innerHTML = 'Ambas estratégias são similarmente eficientes!<br>Diferença: ' + diff.toFixed(2) + '°C';
+                } else if (avg1 < avg2) {
+                    winner.innerHTML = '❄️ PUXAR AR FRIO PARA DENTRO VENCE!';
+                    winner.style.color = '#44ff44';
+                    text.innerHTML = `Temperatura média: ${avg1.toFixed(1)}°C vs ${avg2.toFixed(1)}°C<br>` +
+                                     `<strong>${diff.toFixed(2)}°C mais fresco</strong> trazendo ar frio diretamente!`;
+                } else {
+                    winner.innerHTML = '🌪️ EXPELIR AR QUENTE VENCE!';
+                    winner.style.color = '#44ff44';
+                    text.innerHTML = `Temperatura média: ${avg2.toFixed(1)}°C vs ${avg1.toFixed(1)}°C<br>` +
+                                     `<strong>${diff.toFixed(2)}°C mais fresco</strong> removendo o ar quente!`;
+                }
+            }
+        }
+        
+        function animate() {
+            sim1.update();
+            sim1.draw();
+            
+            sim2.update();
+            sim2.draw();
+            
+            if (sim1.time % 30 === 0) {
+                updateComparison();
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        function resetSimulation() {
+            sim1.reset();
+            sim2.reset();
+        }
+        
+        animate();
+    </script>
+</body>
+</html>
