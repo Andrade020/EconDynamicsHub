@@ -1,0 +1,9 @@
+numpy
+matplotlib
+scipy
+pandas
+torch
+joblib
+requests
+openpyxl
+jupyter
