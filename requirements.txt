@@ -7,3 +7,4 @@ joblib
 requests
 openpyxl
 jupyter
+PyQt5
